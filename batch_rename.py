@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import subprocess
 import sys
 
 parser = argparse.ArgumentParser(description="rename a group of files sequentially")
@@ -19,31 +18,42 @@ parser.add_argument("-p", "--pad", type=int, default=-1,
 					sequence number by default. -p 0 disables padding entirely")
 args = parser.parse_args()
 
+
+def main(args):
+	"""
+	handles the logic and iteration of the batch renaming
+	"""
+	
+	start = args.index
+	stop  = args.index + len(args.files)
+	padding = len(str(stop))
+	padding = args.pad if args.pad > -1 else padding
+
+	for i in range(start, stop):
+		path = args.files[i - start]
+		if not args.dirs and os.path.isdir(path):
+		# skips second check if dirs are enabled
+			continue
+		seq = str(i).zfill(padding)
+		new  = change_path(path, args.prefix, seq)
+		if args.no_op:
+			print("rename:", path, "to:", new)
+		else:
+			os.rename(path, new)
+
+
 def change_path(old_path, prefix, seq, sep="_"):
 	"""
 	Returns as a string the new pathname to be used by the move function
 	"""
 	directory = os.path.dirname(old_path)
 	extension = os.path.splitext(old_path)[1]
+	if directory != "":
+		directory = directory + "/"
 
-	new_path = directory + "/" + prefix + sep + seq + extension
+	new_path = directory + prefix + sep + seq + extension
 
 	return new_path
 
-start = args.index
-stop  = args.index + len(args.files)
-padding = len(str(stop))
-padding = args.pad if args.pad > -1 else padding
-
-for i in range(start, stop):
-	path = args.files[i - start]
-	if not args.dirs and os.path.isdir(path):
-	# skips second check if dirs are enabled
-		continue
-	seq = str(i).zfill(padding)
-	new  = change_path(path, args.prefix, seq)
-	if args.no_op:
-		print("mv", path, new)
-	else:
-		subprocess.run(["mv",path, new])
-
+if __name__ == "__main__":
+	main(args)
